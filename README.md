@@ -15,7 +15,7 @@ Zhihao Zhan<sup>1</sup>, Yuhao Chen<sup>1</sup>, Jiaying Zhou<sup>1</sup>, Qinha
 </p>
 
 <p align="center">
-<sup>1</sup>Sun Yat-sen University, <sup>2</sup>Guangdong Key Laboratory of Big Data Analysis and Processing, <sup>3</sup>X-Era AI Lab, <sup>4</sup>Guangdong University of Technology.
+<sup>1</sup>Sun Yat-sen University, <sup>2</sup>Guangdong Key Laboratory of Big Data Analysis and Processing, <sup>3</sup>X-Era AI Lab.
 </p>
 
 <p align="center">
@@ -23,12 +23,57 @@ Zhihao Zhan<sup>1</sup>, Yuhao Chen<sup>1</sup>, Jiaying Zhou<sup>1</sup>, Qinha
 </p>
 
 
+## 📣 News
+
+- **[2026-05-08]** Update results and we are uploading full checkpoints.
+- **[2026-04-16]** Codebase released.
+- **[2026-04-07]** Accepted by ACL 2026 Main Conference 🎉
+
+
+
 ## ✨ Abstract
 ![Pipeline](figs/rss-figs.png)
 
 Vision-Language-Action (VLA) models have demonstrated impressive capabilities in generalized robotic control; however, they remain notoriously brittle to linguistic perturbations. We identify a critical ``modality collapse'' phenomenon where strong visual priors overwhelm sparse linguistic signals, causing agents to overfit to specific instruction phrasings while ignoring the underlying semantic intent. To address this, we propose **Residual Semantic Steering (RSS)**, a probabilistic framework that disentangles physical affordance from semantic execution. RSS introduces two theoretical innovations: (1) **Monte Carlo Syntactic Integration**, which approximates the true semantic posterior via dense, LLM-driven distributional expansion, and (2) **Residual Affordance Steering**, a dual-stream decoding mechanism that explicitly isolates the causal influence of language by subtracting the visual affordance prior. Theoretical analysis suggests that RSS effectively maximizes the mutual information between action and intent while suppressing visual distractors. Empirical results across diverse manipulation benchmarks demonstrate that RSS achieves state-of-the-art robustness, maintaining performance even under adversarial linguistic perturbations.
 
+## 📊 Results
 
+RSS demonstrates strong robustness and generalization across diverse language-conditioned robotic manipulation benchmarks.
+
+### 🔥 Robustness under Destructive Instruction Overwriting
+
+We evaluate RSS under progressively destructive instruction corruption settings, including random token insertion, semantic masking, and multi-level perturbations.
+
+![Destructive Instruction Overwriting](figs/destructive_instruction_results.png)
+
+RSS consistently improves robustness across all perturbation levels. In particular, combining **Residual Affordance Steering (RAS)** with **Monte Carlo Syntactic Integration (MCSI)** yields substantial gains over both $\pi_0$ and $\pi_{0.5}$ baselines, improving average success rate by up to **+29.85%**.
+
+---
+
+### 🔄 Obfuscated Instruction Reinterpretation
+
+We further evaluate semantic recovery under heavily obfuscated language instructions.
+
+![Obfuscated Instruction Reinterpretation](figs/reinterpretation_results.png)
+
+RSS effectively preserves semantic alignment even when instruction structures are rewritten or partially obscured. MCSI notably improves semantic reinterpretation ability by approximating the latent semantic posterior through distributional prompt expansion.
+
+---
+
+### 🌍 LIBERO-Plus Generalization Benchmark
+
+We evaluate RSS on LIBERO-Plus under diverse distribution shifts, including camera, robot embodiment, language, lighting, background, noise, and layout variations.
+
+![LIBERO-Plus Results](figs/libero_plus_results.png)
+
+RSS achieves state-of-the-art robustness and generalization performance across multiple challenging settings. On top of $\pi_{0.5}$, RSS improves average success rate from **81.4% → 90.0%**, demonstrating strong cross-domain transfer capability under severe distribution shifts.
+
+---
+
+### ✨ Key Takeaways
+
+- RSS substantially improves robustness to adversarial and corrupted instructions.
+- The combination of RAS and MCSI consistently delivers the strongest performance across benchmarks.
 
 
 
