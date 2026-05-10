@@ -8,6 +8,7 @@
 <p align="center">
 <a href="https://arxiv.org/abs/2601.04052"><img src="https://img.shields.io/badge/arXiv-Paper-red" alt="arXiv"></a>
 <a href="https://github.com/Doo-mon/RSS"><img src="https://img.shields.io/badge/Code-GitHub-green" alt="Code"></a>
+<a href="https://huggingface.co/doomon/RSS_pi05_cfg_libero_caption"><img src="https://img.shields.io/badge/HuggingFace-Model-yellow" alt="HuggingFace"></a>
 </p>
 
 <p align="center">
