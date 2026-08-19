@@ -102,7 +102,7 @@ class DataConfig:
 @dataclasses.dataclass(frozen=True)
 class CFGDataConfig(DataConfig):
     use_cfg: bool = False
-    num_steps: int = 10,
+    num_steps: int = 10
     guidance_scale: float = 1.5
 
 

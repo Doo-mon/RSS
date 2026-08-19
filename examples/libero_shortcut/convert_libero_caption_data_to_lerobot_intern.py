@@ -114,9 +114,9 @@ def main(data_dir="./datasets/libero", *, overwrite: bool = OVERWRITE, ignore_ta
                 origin_instruction = step["language_instruction"].decode()
                 assert origin_instruction is not None, "Miss instruction!"
 
-                # if ignore_task and (origin_instruction in IGNORE_TASK_LIST):
-                #     is_skip_episode = True
-                #     break
+                if ignore_task and origin_instruction in IGNORE_TASK_LIST:
+                    is_skip_episode = True
+                    break
 
                 if is_first_frame:
                     is_first_frame = False

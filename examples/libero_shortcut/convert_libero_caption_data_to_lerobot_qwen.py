@@ -53,7 +53,7 @@ def main(data_dir="./datasets/libero", *, overwrite:bool=OVERWRITE, ignore_task:
         print("Model loaded successfully.")
     except Exception as e:
         print(f"Failed to load model: {e}")
-        exit()
+        raise RuntimeError(f"Failed to load model from {MODEL_PATH}") from e
 
 
     dataset = LeRobotDataset.create(
@@ -108,114 +108,111 @@ def main(data_dir="./datasets/libero", *, overwrite:bool=OVERWRITE, ignore_task:
             image_inputs = []
             spatial_layout = None
             subtask_decomposition = None
-
-            is_pass = False
-
+            is_skip_episode = False
 
             for step in episode["steps"].as_numpy_iterator():
                 origin_instruction = step["language_instruction"].decode()
                 assert origin_instruction is not None, "Miss instruction!"
 
-                if ignore_task:
-                    if origin_instruction not in IGNORE_TASK_LIST:
-                        print("pass")
-                        is_pass = True
+                if ignore_task and origin_instruction in IGNORE_TASK_LIST:
+                    is_skip_episode = True
+                    break
 
+                if is_first_frame:
+                    is_first_frame = False
+                    task_context = f"The overall goal is: '{origin_instruction}'."
 
-                if not is_pass:
-
-                    if is_first_frame:
-                        is_first_frame = False
-                        task_context = f"The overall goal is: '{origin_instruction}'."
-
-                        prompt_text = (
-                            f"Analyze the image for a robotic manipulation task. {task_context}\n"
-                            "Please provide the output in two distinct sections:\n\n"
-                            "1. **Spatial Layout**: Describe the spatial layout using concise sentences. "
-                            "Focus on the **relative positions** between objects (e.g., 'X is to the left of Y', 'A is between B and C'). "
-                            "Avoid describing materials or textures, but clearly explain how objects are arranged relative to each other.\n"
-                            "2. **Subtask Decomposition**: List the steps directly as a numbered list. "
-                            "Just write the specific action for each step (e.g., '1. Move the gripper to the white mug.')."
-                        )
-
-                        messages = [
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "image", "image": "img"},
-                                    {"type": "text", "text": prompt_text},
-                                ],
-                            }
-                        ]
-
-                        observation = step['observation']
-                        image = observation['image']
-                        if image.dtype != np.uint8:
-                            image = image.astype(np.uint8)
-                        image_pil = Image.fromarray(image)
-                        image_inputs.append(image_pil)
-
-
-                        text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-                        inputs = processor(
-                            text=[text],
-                            images=image_inputs,
-                            padding=True,
-                            return_tensors="pt",
-                        )
-                        inputs = inputs.to(model.device)
-                        generated_ids = model.generate(**inputs, max_new_tokens=256)
-                        generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)]
-                        output_text = processor.batch_decode(generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)
-
-                        raw_output = output_text[0] 
-                        parsed = parse_qwen_output(raw_output)
-                        spatial_layout = parsed["spatial_layout"]
-                        subtask_decomposition = parsed["subtask_decomposition"]
-
-                        print("Spatial Layout:")
-                        print(spatial_layout)
-                    
-                        print("\nSubtask Decomposition:")
-                        print(subtask_decomposition)
-                    dataset.add_frame(
-                        {
-                            "image": step["observation"]["image"],
-                            "wrist_image": step["observation"]["wrist_image"],
-                            "state": step["observation"]["state"],
-                            "actions": step["action"],
-                            "task": origin_instruction,
-                            "spatial_layout": spatial_layout,
-                            "subtask_decomposition": subtask_decomposition,
-                        }
+                    prompt_text = (
+                        f"Analyze the image for a robotic manipulation task. {task_context}\n"
+                        "You MUST output in exactly the following format with two headers:\n\n"
+                        "### Spatial Layout:\n"
+                        "- Use concise sentences describing relative positions between objects.\n"
+                        "- Focus on relations like left/right/front/behind/on/between.\n"
+                        "- Avoid materials/textures.\n\n"
+                        "### Subtask Decomposition:\n"
+                        "Provide a numbered list of atomic manipulation steps.\n"
                     )
-            
-            if ignore_task:
-                if not is_pass:
-                    dataset.save_episode()
-            else:
+
+                    messages = [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "image", "image": "img"},
+                                {"type": "text", "text": prompt_text},
+                            ],
+                        }
+                    ]
+
+                    observation = step['observation']
+                    image = observation['image']
+                    if image.dtype != np.uint8:
+                        image = image.astype(np.uint8)
+                    image_pil = Image.fromarray(image)
+                    image_inputs.append(image_pil)
+
+
+                    text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                    inputs = processor(
+                        text=[text],
+                        images=image_inputs,
+                        padding=True,
+                        return_tensors="pt",
+                    )
+                    inputs = inputs.to(model.device)
+                    generated_ids = model.generate(**inputs, max_new_tokens=256)
+                    generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)]
+                    output_text = processor.batch_decode(generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+
+                    raw_output = output_text[0]
+                    parsed = parse_qwen_output(raw_output)
+                    spatial_layout = parsed["spatial_layout"]
+                    subtask_decomposition = parsed["subtask_decomposition"]
+
+                    print("Spatial Layout:")
+                    print(spatial_layout)
+
+                    print("\nSubtask Decomposition:")
+                    print(subtask_decomposition)
+                dataset.add_frame(
+                    {
+                        "image": step["observation"]["image"],
+                        "wrist_image": step["observation"]["wrist_image"],
+                        "state": step["observation"]["state"],
+                        "actions": step["action"],
+                        "task": origin_instruction,
+                        "spatial_layout": spatial_layout,
+                        "subtask_decomposition": subtask_decomposition,
+                    }
+                )
+
+            if not is_skip_episode:
                 dataset.save_episode()
 
 
 
 def parse_qwen_output(text: str):
     result = {
-        "spatial_layout": None,
-        "subtask_decomposition": None,
+        "spatial_layout": "N/A",
+        "subtask_decomposition": "N/A",
     }
-    text = text.strip()
+    text = (text or "").strip()
+    text = re.sub(
+        r"(?im)^\s*\d+\.\s*\*\*(Spatial Layout|Subtask Decomposition)\*\*\s*:",
+        r"### \1:",
+        text,
+    )
 
 
     spatial_match = re.search(
         r"###\s*Spatial Layout:\s*(.*?)\s*###\s*Subtask Decomposition:",
         text,
-        re.S,
+        re.S | re.I,
     )
 
     subtask_match = re.search(
         r"###\s*Subtask Decomposition:\s*(.*)",
         text,
-        re.S,
+        re.S | re.I,
     )
 
     if spatial_match:
